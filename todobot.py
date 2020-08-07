@@ -2,14 +2,17 @@ import json  # parse JSON responses from Telegram to Python dictionaries
 import requests  # web requests to interact with telegram API
 import time
 import urllib
+import logging
+import os
 
 from dbsetup import Databasesetup
 
 db = Databasesetup()
 
 
-TOKEN = "<your token>"
+TOKEN = "1322713579:AAEcAFCt622Zg8B02WYLu_QNgs2n79fIyG4"
 URL = "https://api.telegram.org/bot{}/".format(TOKEN)
+NAME = "productiveubot"
 
 
 def get_json_from_url(url):  # gets JSON from Telegram API url
@@ -118,6 +121,22 @@ def main():
             last_update_id = get_last_update_id(updates) + 1
             handle_updates(updates)
         time.sleep(0.1)
+
+    PORT = os.environ.get('PORT')
+    # Set up the Updater
+    updater = Updater(TOKEN)
+    dp = updater.dispatcher
+    # Add handlers
+    dp.add_handler(CommandHandler('start', start))
+    dp.add_handler(MessageHandler(Filters.text, echo))
+    dp.add_error_handler(error)
+
+    # Start the webhook
+    updater.start_webhook(listen="0.0.0.0",
+                          port=int(PORT),
+                          url_path=TOKEN)
+    updater.bot.setWebhook("https://{}.herokuapp.com/{}".format(NAME, TOKEN))
+    updater.idle()
 
 
 if __name__ == '__main__':
