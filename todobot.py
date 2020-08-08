@@ -10,7 +10,7 @@ from dbsetup import Databasesetup
 db = Databasesetup()
 
 
-TOKEN = "1322713579:AAEcAFCt622Zg8B02WYLu_QNgs2n79fIyG4"
+TOKEN = "<your token>"
 URL = "https://api.telegram.org/bot{}/".format(TOKEN)
 NAME = "productiveubot"
 
