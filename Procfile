@@ -1,1 +1,2 @@
-web: gunicorn app.hello:app
+web: python todobot.py
+worker: python todobot.py
