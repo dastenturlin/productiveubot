@@ -4,13 +4,13 @@ import time
 import urllib
 import logging
 import os
-
 from dbsetup import Databasesetup
+from config import token
 
 db = Databasesetup()
 
 
-TOKEN = "<your token>"
+TOKEN = token
 URL = "https://api.telegram.org/bot{}/".format(TOKEN)
 NAME = "productiveubot"
 
@@ -120,8 +120,9 @@ def main():
         if len(updates["result"]) > 0:
             last_update_id = get_last_update_id(updates) + 1
             handle_updates(updates)
-        time.sleep(0.1)
+        time.sleep(0.5)
 
+    '''
     PORT = os.environ.get('PORT')
     # Set up the Updater
     updater = Updater(TOKEN)
@@ -137,7 +138,14 @@ def main():
                           url_path=TOKEN)
     updater.bot.setWebhook("https://{}.herokuapp.com/{}".format(NAME, TOKEN))
     updater.idle()
-
-
+    
+    '''
 if __name__ == '__main__':
     main()
+
+
+
+
+
+
+
