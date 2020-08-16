@@ -7,7 +7,7 @@ import os
 from dbsetup import Databasesetup
 from config import token
 
-db = Databasesetup()
+db = Databasesetup("/var/www/productiveubot/todo.sqlite")
 
 
 TOKEN = token
@@ -37,58 +37,59 @@ def get_last_update_id(updates):
     return max(update_ids)
 
 
+def handle_update(update):
+    text = update["message"]["text"]
+    chat = update["message"]["chat"]["id"]
+    items = db.get_items(chat) 
+    if text == "/done":
+        if not items:
+            send_message("*There are no tasks at the moment. Start with typing anything below!*", chat)
+        else:
+            keyboard = build_keyboard(items)
+            send_message("*Congrats on completing the task! Select an item to delete:*", chat, keyboard)
+
+    elif text == "/start":
+        keyboard = build_keyboard(items)
+        send_message("*Welcome to your personal todo list! \n\nTo add the task, just type it below. "
+            "\n\nDelete your task using dropdown menu or just type /done to remove it."
+            " To clear your list, send /clear. \n\nThank you! Message @dastiish if you have any questions.*", chat, keyboard)
+        message = "\n".join(items)
+        send_message("*Current tasks: \n*" + message, chat)
+
+    elif text == "/help":
+        send_message("*Welcome to your personal todo list! \n\nTo add the task, just type it below. "
+                         "\n\nDelete your task using dropdown menu or just type /done to remove it."
+                         " To clear your list, send /clear. \n\nThank you! Message @dastiish if you have any questions.*", chat)
+
+    elif text == "/clear":
+        db.delete_all(text, chat)
+        items = db.get_items(chat)
+
+        message = "\n".join(items)
+        keyboard = build_keyboard(items)
+        send_message("*Current tasks: \n*" + message, chat)
+
+    #elif text.startswith("/"):
+        #continue
+
+    elif text in items:  # if user already sent this task
+        db.delete_item(text, chat)
+        items = db.get_items(chat)
+
+        message = "\n".join(items)
+        keyboard = build_keyboard(items)
+        send_message("*Another task done! Current tasks: \n*" + message, chat, keyboard)
+
+    else:  # if user didn't send it
+        db.add_item(text, chat)
+        items = db.get_items(chat)
+        message = "\n".join(items)
+        keyboard = build_keyboard(items)
+        send_message("*New task added. Current tasks: \n*" + message, chat, keyboard)
 
 def handle_updates(updates):
     for update in updates["result"]:
-        try:
-            text = update["message"]["text"]
-            chat = update["message"]["chat"]["id"]
-            items = db.get_items(chat)
-            if text == "/done":
-                if not items:
-                    send_message("*There are no tasks at the moment. Start with typing anything below!*", chat)
-                else:
-                    keyboard = build_keyboard(items)
-                    send_message("*Congrats on completing the task! Select an item to delete:*", chat, keyboard)
-
-            elif text == "/start":
-                keyboard = build_keyboard(items)
-                send_message("*Welcome to your personal todo list! \n\nTo add the task, just type it below. "
-                             "\n\nDelete your task using dropdown menu or just type /done to remove it."
-                             " To clear your list, send /clear. \n\nThank you! Message @dastiish if you have any questions.*", chat, keyboard)
-                message = "\n".join(items)
-                send_message("*Current tasks: \n*" + message, chat)
-
-            elif text == "/help":
-                send_message("*Welcome to your personal todo list! \n\nTo add the task, just type it below. "
-                             "\n\nDelete your task using dropdown menu or just type /done to remove it."
-                             " To clear your list, send /clear. \n\nThank you! Message @dastiish if you have any questions.*", chat)
-
-            elif text == "/clear":
-                db.delete_all(text, chat)
-                items = db.get_items(chat)
-
-                message = "\n".join(items)
-                keyboard = build_keyboard(items)
-                send_message("*Current tasks: \n*" + message, chat)
-
-            elif text in items:  # if user already sent this task
-                db.delete_item(text, chat)
-                items = db.get_items(chat)
-
-                message = "\n".join(items)
-                keyboard = build_keyboard(items)
-                send_message("*Another task done! Current tasks: \n*" + message, chat, keyboard)
-
-            else:  # if user didn't send it
-                db.add_item(text, chat)
-                items = db.get_items(chat)
-                message = "\n".join(items)
-                keyboard = build_keyboard(items)
-                send_message("*New task added. Current tasks: \n*" + message, chat, keyboard)
-        except KeyError:
-            pass
-
+        handle_update(update)
 
 def get_last_chat_id_and_text(updates: {}):  # only last message instead of whole bunch of updates
     num_updates = len(updates["result"])
