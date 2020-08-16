@@ -5,14 +5,19 @@ import urllib
 import logging
 import os
 from dbsetup import Databasesetup
+from statsdbsetup import DBsetup
+
 from config import token
 
 db = Databasesetup("/var/www/productiveubot/todo.sqlite")
-
+#statsdb = DBsetup("/var/www/productiveubot/stats.sqlite")
 
 TOKEN = token
 URL = "https://api.telegram.org/bot{}/".format(TOKEN)
 NAME = "productiveubot"
+
+users = []
+tasks = []
 
 
 def get_json_from_url(url):  # gets JSON from Telegram API url
@@ -40,6 +45,10 @@ def get_last_update_id(updates):
 def handle_update(update):
     text = update["message"]["text"]
     chat = update["message"]["chat"]["id"]
+
+    if chat not in users:
+        users.append(chat)
+
     items = db.get_items(chat) 
     if text == "/done":
         if not items:
@@ -48,6 +57,37 @@ def handle_update(update):
             keyboard = build_keyboard(items)
             send_message("*Congrats on completing the task! Select an item to delete:*", chat, keyboard)
 
+    elif text in items:  # if user already sent this task
+        tasks.append(text)
+
+        db.delete_item(text, chat)
+        items = db.get_items(chat)
+        
+        if not items:
+            send_message("*Another task done!\nThere are no current tasks at the moment. Well done!*", chat)
+        else:   
+            message = "\n".join(items)
+            keyboard = build_keyboard(items)
+            send_message("*Another task done! Current tasks: \n*" + message, chat, keyboard)
+
+    elif (text not in items) and (not text.startswith("/")):  # if user didn't send it
+        #statsdb.add_item(text, chat)
+        db.add_item(text, chat)
+        items = db.get_items(chat)
+        message = "\n".join(items)
+        keyboard = build_keyboard(items)
+        send_message("*New task added. Current tasks: \n*" + message, chat, keyboard)
+    
+    elif text == "/getnumusers":
+        #num = db.get_users(text, chat)
+        #num = statsdb.get_users()
+        send_message("*Number of users: *" + str(len(users)), chat)
+
+    elif text == "/getnummessages":
+        #num = statsdb.get_num_messages()
+        send_message("*Number of tasks done: *" + str(len(tasks)), chat)
+    
+    
     elif text == "/start":
         keyboard = build_keyboard(items)
         send_message("*Welcome to your personal todo list! \n\nTo add the task, just type it below. "
@@ -56,6 +96,8 @@ def handle_update(update):
         message = "\n".join(items)
         send_message("*Current tasks: \n*" + message, chat)
 
+    
+    
     elif text == "/help":
         send_message("*Welcome to your personal todo list! \n\nTo add the task, just type it below. "
                          "\n\nDelete your task using dropdown menu or just type /done to remove it."
@@ -72,20 +114,6 @@ def handle_update(update):
     #elif text.startswith("/"):
         #continue
 
-    elif text in items:  # if user already sent this task
-        db.delete_item(text, chat)
-        items = db.get_items(chat)
-
-        message = "\n".join(items)
-        keyboard = build_keyboard(items)
-        send_message("*Another task done! Current tasks: \n*" + message, chat, keyboard)
-
-    else:  # if user didn't send it
-        db.add_item(text, chat)
-        items = db.get_items(chat)
-        message = "\n".join(items)
-        keyboard = build_keyboard(items)
-        send_message("*New task added. Current tasks: \n*" + message, chat, keyboard)
 
 def handle_updates(updates):
     for update in updates["result"]:
@@ -114,6 +142,7 @@ def send_message(text, chat_id, reply_markup=None):
 
 
 def main():
+    #statsdb.setup()
     db.setup()
     last_update_id = None
     while True:
