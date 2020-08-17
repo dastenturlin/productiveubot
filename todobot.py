@@ -54,7 +54,6 @@ def handle_update(update):
         if not items:
             send_message("*🐨There are no tasks at the moment. Start with typing anything below!*", chat)
         else:
-<<<<<<< HEAD
             db.add_item("~", chat)
             
             items = db.get_items(chat)
@@ -62,14 +61,11 @@ def handle_update(update):
             keyboard = build_keyboard(items)
             
             send_message("*🔥Congrats on completing the task! Select an item to delete from the keyboard: (just ignore ~ button)*", chat, build_keyboard(db.get_items(chat)))
-=======
             message = ""
             items = db.get_items(chat)
             keyboard = build_keyboard(items)
             send_message("*🔥Congrats on completing the task! Select an item to delete from the dropdown keyboard:*" + message, chat, keyboard)
             keyboard = build_keyboard(items)
->>>>>>> 7d0f15e6c3bbdd51adb6526df25f8bf49285fdd7
-
             db.delete_item("~", chat)
     elif text in items:  # if user already sent this task
         tasks.append(text)
