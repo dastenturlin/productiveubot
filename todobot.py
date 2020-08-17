@@ -5,12 +5,12 @@ import urllib
 import logging
 import os
 from dbsetup import Databasesetup
-from statsdbsetup import DBsetup
+
 
 from config import token
 
 db = Databasesetup("/var/www/productiveubot/todo.sqlite")
-#statsdb = DBsetup("/var/www/productiveubot/stats.sqlite")
+
 
 TOKEN = token
 URL = "https://api.telegram.org/bot{}/".format(TOKEN)
@@ -52,11 +52,17 @@ def handle_update(update):
     items = db.get_items(chat) 
     if text == "/done":
         if not items:
-            send_message("*There are no tasks at the moment. Start with typing anything below!*", chat)
+            send_message("*🐨There are no tasks at the moment. Start with typing anything below!*", chat)
         else:
+            db.add_item("~", chat)
+            
+            items = db.get_items(chat)
+            message = "\n".join(items)
             keyboard = build_keyboard(items)
-            send_message("*Congrats on completing the task! Select an item to delete:*", chat, keyboard)
+            
+            send_message("*🔥Congrats on completing the task! Select an item to delete from the keyboard: (just ignore ~ button)*", chat, build_keyboard(db.get_items(chat)))
 
+            db.delete_item("~", chat)
     elif text in items:  # if user already sent this task
         tasks.append(text)
 
@@ -64,18 +70,18 @@ def handle_update(update):
         items = db.get_items(chat)
         
         if not items:
-            send_message("*Another task done!\nThere are no current tasks at the moment. Well done!*", chat)
+            send_message("*☑Another task done!\nThere are no current tasks at the moment. Well done!*", chat)
         else:   
             message = "\n".join(items)
             keyboard = build_keyboard(items)
-            send_message("*Another task done! Current tasks: \n*" + message, chat, keyboard)
+            send_message("*☑Another task done! Current tasks: \n*" + message, chat, keyboard)
 
-    elif (text not in items) and (not text.startswith("/")):  # if user didn't send it
+    elif (text not in items) and (not text.startswith("/") and (text!="~")):  # if user didn't send it
         db.add_item(text, chat)
         items = db.get_items(chat)
         message = "\n".join(items)
         keyboard = build_keyboard(items)
-        send_message("*New task added. Current tasks: \n*" + message, chat, keyboard)
+        send_message("*✍New task added. Current tasks: \n*" + message, chat, keyboard)
     
     elif text == "/getnumusers":
         send_message("*Number of users: *" + str(len(users)), chat)
@@ -86,16 +92,19 @@ def handle_update(update):
     
     elif text == "/start":
         keyboard = build_keyboard(items)
-        send_message("*Welcome to your personal todo list! \n\nTo add the task, just type it below. "
+        send_message("*🗒️Welcome to your personal todo list! \n\nTo add the task, just type it below. "
             "\n\nDelete your task using dropdown menu or just type /done to remove it."
             " To clear your list, send /clear. \n\nThank you! Message @dastiish if you have any questions.*", chat, keyboard)
         message = "\n".join(items)
-        send_message("*Current tasks: \n*" + message, chat)
+        send_message("*📝Current tasks: \n*" + message, chat)
 
-    
+    elif text == "/currenttasks":
+        keyboard = build_keyboard(items)
+        message = "\n".join(items)
+        send_message("*📝Current tasks: \n*" + message, chat, keyboard)
     
     elif text == "/help":
-        send_message("*Welcome to your personal todo list! \n\nTo add the task, just type it below. "
+        send_message("*🗒️Welcome to your personal todo list! \n\nTo add the task, just type it below. "
                          "\n\nDelete your task using dropdown menu or just type /done to remove it."
                          " To clear your list, send /clear. \n\nThank you! Message @dastiish if you have any questions.*", chat)
 
@@ -105,7 +114,7 @@ def handle_update(update):
 
         message = "\n".join(items)
         keyboard = build_keyboard(items)
-        send_message("*Current tasks: \n*" + message, chat)
+        send_message("*☑☑☑Well done!\nNow there are no tasks at the moment*" + message, chat)
 
     #elif text.startswith("/"):
         #continue
